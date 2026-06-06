@@ -83,13 +83,25 @@ jobs:
 
       - name: Correr organizador
         run: |
+          # Corrida diaria: por defecto procesa solo lo nuevo desde la ultima vez.
           FLAGS="--execute --since-last-run"
+
+          # --- PERIODO DE PRUEBA: la corrida programada (22:00) solo etiqueta. ---
+          # Para activar el modo completo (archivar + Papelera), borra la
+          # linea marcada con QUITAR-PARA-MODO-COMPLETO.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            FLAGS="$FLAGS --label-only"   # QUITAR-PARA-MODO-COMPLETO
+          fi
+
+          # Overrides manuales desde el boton "Run workflow":
           if [ "${{ github.event.inputs.full }}" = "true" ]; then
             FLAGS="--execute --full"
           fi
           if [ "${{ github.event.inputs.label_only }}" = "true" ]; then
             FLAGS="$FLAGS --label-only"
           fi
+
+          echo "Ejecutando: gmail_organizer.py $FLAGS"
           python gmail_organizer.py $FLAGS
 
       - name: Subir token actualizado (por si Google rotó el refresh_token)
