@@ -131,6 +131,42 @@ schtasks /Create /SC DAILY /ST 22:00 /TN "Organizar Gmail" ^
 0 22 * * * cd /ruta/a/Automatizacion-gmail && /ruta/.venv/bin/python gmail_organizer.py --execute --since 1d >> logs/cron.log 2>&1
 ```
 
+### GitHub Actions (corre solo en la nube, sin PC prendida)
+
+Hay un workflow listo en [`.github/workflows/diario.yml`](.github/workflows/diario.yml) que corre todos los días a las 01:00 UTC (22:00 ARG).
+
+**Antes de habilitarlo:**
+
+1. **OAuth app "In production"**. En Google Cloud Console → "OAuth consent screen" → cambiá el publishing status de *Testing* a *In production*. Si no, el `refresh_token` caduca cada 7 días y la tarea se rompe. Para apps de uso personal, publicar es gratis y queda como "no verificada" — sin problema.
+
+2. **Primera corrida local**: hacé al menos un `python gmail_organizer.py --dry-run --full` en tu máquina para que se genere `token.json` con el `refresh_token`.
+
+3. **Subir los secrets al repo** (Settings → Secrets and variables → Actions → New repository secret):
+
+   En tu PC, generá los base64:
+   ```bash
+   # Linux/Mac
+   base64 -i credentials.json | tr -d '\n'
+   base64 -i token.json | tr -d '\n'
+
+   # Windows (PowerShell)
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("credentials.json"))
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("token.json"))
+   ```
+   Y cargá cada uno como secret:
+   - `GMAIL_CREDENTIALS_B64`
+   - `GMAIL_TOKEN_B64`
+
+4. **Probar manual primero**: Actions → "Organizar Gmail diario" → "Run workflow" → marcá `label_only` la primera vez. Revisás los artifacts (`logs-*`) y el draft de resumen en tu Gmail.
+
+5. **Listo**: a partir de ahí corre solo todos los días.
+
+**Cosas a saber:**
+
+- `senders.json` y `state.json` se persisten entre corridas vía cache de Actions.
+- Si Google rota el `refresh_token`, el nuevo `token.json` queda como artifact (7 días). Bajalo y re-subilo como secret.
+- Si el repo queda 60 días sin actividad, GitHub deshabilita el cron. Un push o un run manual lo reactiva.
+
 ## Afinar las reglas
 
 Todo se edita en [`config.py`](config.py): remitentes importantes, palabras
