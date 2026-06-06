@@ -59,14 +59,15 @@ jobs:
           fi
           write_secret () {
             name="$1"; val="$2"; out="$3"
-            clean="$(printf '%s' "$val" | tr -d '[:space:]')"
-            first="$(printf '%s' "$clean" | cut -c1)"
+            # quitar solo CR de Windows; conservar el resto
+            norm="$(printf '%s' "$val" | tr -d '\r')"
+            first="$(printf '%s' "$norm" | tr -d '[:space:]' | cut -c1)"
             if [ "$first" = "{" ]; then
               echo "$name: secret detectado como JSON crudo"
-              printf '%s' "$clean" > "$out"
+              printf '%s' "$norm" > "$out"
             else
               echo "$name: secret detectado como base64, decodificando"
-              printf '%s' "$clean" | base64 -d > "$out" 2>/dev/null \
+              printf '%s' "$norm" | tr -d '[:space:]' | base64 -d > "$out" 2>/dev/null \
                 || { echo "$name: base64 invalido"; exit 1; }
             fi
             if head -c1 "$out" | grep -q '{'; then
