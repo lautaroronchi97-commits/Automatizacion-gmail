@@ -1,0 +1,58 @@
+name: Dump del estado (senders.json y ultimo jsonl) para analisis
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restaurar cache (senders.json y state.json)
+        uses: actions/cache@v4
+        with:
+          path: |
+            senders.json
+            state.json
+          key: organizer-state-dump-${{ github.run_id }}
+          restore-keys: |
+            organizer-state-
+
+      - name: Descargar ultimo log de acciones del run --full
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Bajar el artifact "logs-27071015477" (el del full sweep)
+          mkdir -p logs
+          set -e
+          ARTIFACT_ID=7457110583
+          curl -sL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/logs.zip \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}/zip" || true
+          unzip -o /tmp/logs.zip -d logs/ || true
+          ls -la logs/ || true
+
+      - name: Dump completo
+        run: |
+          echo "================ SENDERS.JSON ================"
+          if [ -f senders.json ]; then
+            cat senders.json
+          else
+            echo "(no hay cache de senders.json)"
+          fi
+          echo ""
+          echo "================ STATE.JSON =================="
+          if [ -f state.json ]; then cat state.json; fi
+          echo ""
+          echo "================ JSONL DEL FULL SWEEP ========"
+          for f in logs/actions-exec-*.jsonl; do
+            [ -e "$f" ] || continue
+            echo "--- $f ---"
+            cat "$f"
+          done
