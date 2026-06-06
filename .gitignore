@@ -6,6 +6,8 @@ client_secret*.json
 
 # Estado y logs locales
 senders.json
+state.json
+.organizer.lock
 logs/
 *.log
 

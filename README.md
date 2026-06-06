@@ -66,12 +66,46 @@ cp .env.example .env   # y completá si hace falta
 # 1) PRIMERA VEZ: prueba sobre toda la casilla, NO modifica nada
 python gmail_organizer.py --dry-run --full
 
-# 2) Si el informe está OK, ejecutá de verdad sobre todo el historial
+# 2) Modo "shadow": solo etiqueta, no archiva ni manda a Papelera.
+#    Útil para ganar confianza una semana antes de habilitar acciones.
+python gmail_organizer.py --execute --full --label-only
+
+# 3) Si el informe está OK, ejecutá de verdad sobre todo el historial
 python gmail_organizer.py --execute --full
 
-# 3) De ahí en más, corridas diarias solo sobre lo nuevo
+# 4) De ahí en más, corridas diarias solo sobre lo nuevo
 python gmail_organizer.py --execute --since 1d
+# o, mejor, usar la ventana persistida desde la última corrida:
+python gmail_organizer.py --execute --since-last-run
+
+# Debug: ver cómo se clasificaría un mensaje puntual
+python gmail_organizer.py --explain MSG_ID
 ```
+
+### Flags útiles
+
+| Flag | Para qué |
+|---|---|
+| `--dry-run` / `--execute` | Modo prueba (default) o aplicar cambios. |
+| `--full` | Toda la casilla. |
+| `--since 1d` | Ventana relativa (ej. `12h`, `2d`). |
+| `--since-last-run` | Ventana desde la última corrida (state.json). |
+| `--limit N` | Tope de mensajes por corrida (útil para probar). |
+| `--label-only` | Solo etiqueta, no archiva ni manda a Papelera. |
+| `--no-summary-draft` | No crear draft con el resumen al terminar. |
+| `--explain MSG_ID` | Mostrar la decisión que se tomaría para ese ID. |
+
+### Qué hace además
+
+- **Retries con backoff** ante 429/5xx de Gmail.
+- **Rota** `logs/cron.log` (5MB × 5) y **poda** `logs/actions-*.jsonl` &gt; 90 días.
+- **Lock** de instancia única (`.organizer.lock`) para evitar solapamientos.
+- **Memoria de remitentes**: un sender con &gt; 5 correos clasificados con éxito
+  se aplica su última etiqueta directo (más rápido y predecible).
+- **Resumen como draft**: al terminar deja un borrador con el informe en tu
+  propia casilla. Apagar con `--no-summary-draft`.
+- **Privacidad**: el subject se trunca a 80 chars en los logs, el body nunca se
+  guarda, `logs/` y `token.json` quedan con `chmod 600` cuando se puede.
 
 ## Tarea diaria automática (22:00)
 
