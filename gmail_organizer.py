@@ -296,16 +296,22 @@ def extract_body(payload):
 def is_automated(email, name, headers):
     """True si parece envío automático/masivo (NO persona).
 
-    Comparación con local-part: exacta, o con separador (./-/_) como prefijo.
-    Antes era substring, lo que daba falsos positivos en personas como
-    "jose.team@..." o "alguien.info@...".
+    Comparación con local-part: exacta o con separador (./-/_) como prefijo.
+    También chequea dominios siempre automáticos (mail.mercadolibre.com, etc.)
+    para casos en que el localpart es un UUID raro.
     """
-    local = email.split("@")[0] if "@" in email else email
+    if "@" in email:
+        local, domain = email.split("@", 1)
+    else:
+        local, domain = email, ""
     for p in config.AUTOMATED_LOCALPARTS:
         if local == p:
             return True
         if local.startswith(p + ".") or local.startswith(p + "-") \
                 or local.startswith(p + "_"):
+            return True
+    for d in getattr(config, "AUTOMATED_DOMAINS", []):
+        if d in domain or d in email:
             return True
     nl = (name or "").lower()
     if any(s in nl for s in config.AUTOMATED_NAME_HINTS):
@@ -315,6 +321,12 @@ def is_automated(email, name, headers):
     if "bulk" in header(headers, "Precedence").lower():
         return True
     return False
+
+
+def is_own_email(email):
+    """True si el remitente es mi propio email (los enviados van a 'Enviados')."""
+    return any(e.strip().lower() == email for e in
+                getattr(config, "OWN_EMAILS", []) if e.strip())
 
 
 def is_whitelisted(email):
@@ -343,8 +355,16 @@ def classify(name, email, subject, body, gmail_categories, headers):
     text = f"{subject}\n{body}"
     d = Decision()
 
+    # 0) Mis propios envíos -> etiqueta "Enviados", archivar.
+    if is_own_email(email):
+        d.labels = ["Enviados"]
+        d.action = "archive"
+        d.reason = "remitente = mi propio email (mensajes enviados)"
+        d.confidence = "high"
+        return d
+
     # 1) Remitente importante por categoría (corre antes que 'persona' para no
-    #    perder bancos/gobierno/Boca/Cocos enviados desde dominios "limpios").
+    #    perder bancos/gobierno/Boca/Cocos/MercadoLibre/etc.).
     for label, needles in config.IMPORTANT_SENDERS.items():
         if matches_any(email, needles) or matches_any(name, needles):
             d.labels = [label]
@@ -353,11 +373,19 @@ def classify(name, email, subject, body, gmail_categories, headers):
             _finish_important(d, label, text)
             return d
 
-    # 2) Lista blanca explícita o no parece automático -> persona, intocable.
-    if is_whitelisted(email) or not is_automated(email, name, headers):
+    # 2) Lista blanca explícita -> intocable.
+    if is_whitelisted(email):
         d.labels = ["Personal"]
         d.action = "keep"
-        d.reason = "persona/lista blanca: se deja en Recibidos"
+        d.reason = "whitelist explícita: se deja en Recibidos"
+        d.confidence = "high"
+        return d
+
+    # 2b) No parece automático -> persona, intocable.
+    if not is_automated(email, name, headers):
+        d.labels = ["Personal"]
+        d.action = "keep"
+        d.reason = "persona: se deja en Recibidos"
         d.confidence = "high"
         return d
 
@@ -415,8 +443,13 @@ def classify(name, email, subject, body, gmail_categories, headers):
     return d
 
 
-def classify_from_memory(senders, email, subject, body):
-    """Si el remitente es conocido y confiable, usa su última etiqueta directo."""
+def classify_from_memory(senders, name, email, subject, body):
+    """Si el remitente es conocido y confiable, usa su última etiqueta.
+
+    SOLO si las reglas vigentes (IMPORTANT_SENDERS / OWN_EMAILS) no apuntan
+    a otra etiqueta. Así la memoria no propaga clasificaciones erróneas
+    cuando la config se mejora.
+    """
     rec = senders.get(email)
     if not rec or rec.get("status") != "ok":
         return None
@@ -425,12 +458,19 @@ def classify_from_memory(senders, email, subject, body):
     label = rec.get("label")
     if not label or label not in config.LABELS:
         return None
+    # Si las reglas actuales asignan otra etiqueta, ignorar la memoria.
+    if is_own_email(email):
+        return None  # caso "Enviados" lo resuelve classify().
+    for cfg_label, needles in config.IMPORTANT_SENDERS.items():
+        if (matches_any(email, needles) or matches_any(name, needles)) \
+                and cfg_label != label:
+            return None  # las reglas mandan, ajustamos memoria al pasar.
     d = Decision()
     d.labels = [label]
     d.reason = f"memoria: remitente conocido ({rec['count']} mails) -> {label}"
     d.confidence = "high"
-    if label == "Personal":
-        d.action = "keep"
+    if label in ("Personal", "Enviados"):
+        d.action = "archive" if label == "Enviados" else "keep"
     else:
         _finish_important(d, label, f"{subject}\n{body}")
     return d
@@ -681,7 +721,7 @@ def run(args):
             int(msg.get("internalDate", "0")) / 1000).isoformat()
 
         # memoria de remitentes
-        d = classify_from_memory(senders, from_email, subject, body)
+        d = classify_from_memory(senders, from_name, from_email, subject, body)
         if d is None:
             if from_email not in senders:
                 new_senders.append(from_email)
