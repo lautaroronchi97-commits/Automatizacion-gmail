@@ -9,7 +9,7 @@ afinar el comportamiento; no hace falta tocar el código principal.
 # --------------------------------------------------------------------------
 # Email del dueño de la casilla. Los correos cuyo From sea este email
 # (mensajes enviados que terminaron en Recibidos, drafts, propios) se mandan
-# a la etiqueta "Enviados" y se archivan.
+# a la etiqueta "Yo enviados" y se archivan.
 # --------------------------------------------------------------------------
 OWN_EMAILS = [
     "lautaroronchi97@gmail.com",
@@ -33,7 +33,7 @@ LABELS = [
     "Suscripciones",
     "Promos que sirven",
     "Personal",
-    "Enviados",
+    "Yo enviados",
     "Boca",
     "Cocos",
     "Guardar",

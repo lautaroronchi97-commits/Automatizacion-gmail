@@ -175,19 +175,35 @@ def ensure_labels(service, dry_run):
         lambda: service.users().labels().list(userId="me").execute()
     ).get("labels", [])
     by_name = {l["name"]: l["id"] for l in existing}
+    # Algunos nombres del sistema están en otro idioma según la UI de Gmail.
+    # Si el usuario ya tiene una etiqueta con un nombre del sistema, no creamos.
     for name in config.LABELS:
         if name in by_name:
             continue
         if dry_run:
             by_name[name] = f"(se crearía) {name}"
             continue
-        created = with_retries(lambda: service.users().labels().create(
-            userId="me",
-            body={"name": name,
-                  "labelListVisibility": "labelShow",
-                  "messageListVisibility": "show"},
-        ).execute())
-        by_name[name] = created["id"]
+        try:
+            created = with_retries(lambda: service.users().labels().create(
+                userId="me",
+                body={"name": name,
+                      "labelListVisibility": "labelShow",
+                      "messageListVisibility": "show"},
+            ).execute())
+            by_name[name] = created["id"]
+        except HttpError as e:
+            status = None
+            try:
+                status = int(e.resp.status)
+            except Exception:
+                pass
+            if status == 400:
+                # Nombre inválido (colisión con system label, caracteres no
+                # permitidos, etc.) -> seguimos sin romper la corrida.
+                log.warning("No se pudo crear la etiqueta %r (400). "
+                             "La omito en esta corrida.", name)
+                continue
+            raise
     return by_name
 
 
@@ -355,9 +371,9 @@ def classify(name, email, subject, body, gmail_categories, headers):
     text = f"{subject}\n{body}"
     d = Decision()
 
-    # 0) Mis propios envíos -> etiqueta "Enviados", archivar.
+    # 0) Mis propios envíos -> etiqueta "Yo enviados", archivar.
     if is_own_email(email):
-        d.labels = ["Enviados"]
+        d.labels = ["Yo enviados"]
         d.action = "archive"
         d.reason = "remitente = mi propio email (mensajes enviados)"
         d.confidence = "high"
@@ -460,7 +476,7 @@ def classify_from_memory(senders, name, email, subject, body):
         return None
     # Si las reglas actuales asignan otra etiqueta, ignorar la memoria.
     if is_own_email(email):
-        return None  # caso "Enviados" lo resuelve classify().
+        return None  # caso "Yo enviados" lo resuelve classify().
     for cfg_label, needles in config.IMPORTANT_SENDERS.items():
         if (matches_any(email, needles) or matches_any(name, needles)) \
                 and cfg_label != label:
@@ -469,8 +485,8 @@ def classify_from_memory(senders, name, email, subject, body):
     d.labels = [label]
     d.reason = f"memoria: remitente conocido ({rec['count']} mails) -> {label}"
     d.confidence = "high"
-    if label in ("Personal", "Enviados"):
-        d.action = "archive" if label == "Enviados" else "keep"
+    if label in ("Personal", "Yo enviados"):
+        d.action = "archive" if label == "Yo enviados" else "keep"
     else:
         _finish_important(d, label, f"{subject}\n{body}")
     return d
