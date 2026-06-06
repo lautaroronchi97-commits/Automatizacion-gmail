@@ -18,6 +18,8 @@ LABELS = [
     "Viajes",
     "Promos que sirven",
     "Personal",
+    "Boca",
+    "Cocos",
     "Guardar",
     "Revisar",  # auxiliar: correos dudosos que dejo para revisión manual
 ]
@@ -37,6 +39,14 @@ IMPORTANT_SENDERS = {
     ],
     "Salud": [
         "swissmedical", "swiss medical", "swissmedical.com.ar",
+    ],
+    "Boca": [
+        "bocajuniors", "boca juniors", "bocajuniors.com", "cabj",
+        "sociosboca",
+    ],
+    "Cocos": [
+        "cocos", "cocoscapital", "cocos capital", "cocos.capital",
+        "micocos",
     ],
 }
 
@@ -83,6 +93,11 @@ ACTION_KEYWORDS = [
 
 # Palabras clave por categoría temática (para etiquetar correctamente).
 CATEGORY_KEYWORDS = {
+    "Boca": ["boca juniors", "bocajuniors", "boca jrs", "club atletico boca",
+              "club atlético boca", "cabj", "socios boca", "sociosboca",
+              "@bocajuniors", "bocajuniors.com"],
+    "Cocos": ["cocos capital", "cocoscapital", "cocos.capital", "@cocos",
+               "cocos crypto", "micocos"],
     "Compras": ["mercadolibre", "mercado libre", "envio", "envío", "pedido",
                  "tu compra", "seguimiento", "garantia", "garantía", "amazon"],
     "Viajes": ["vuelo", "pasaje", "reserva", "hotel", "booking", "despegar",
