@@ -1,0 +1,16 @@
+# Credenciales y tokens de Google (NUNCA subir)
+credentials.json
+token.json
+client_secret*.json
+.env
+
+# Estado y logs locales
+senders.json
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
