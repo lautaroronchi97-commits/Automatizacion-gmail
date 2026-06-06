@@ -69,10 +69,13 @@ IMPORTANT_SENDERS = {
         "allariabursatil", "allaria", "sbs.com.ar", "matba", "rofex",
         # entes / cámaras
         "bymadata", "byma", "infosocios@bcr", "bcr.com.ar", "bcra",
-        "cajadevalores", "caja de valores", "cnv.gob.ar",
-        # newsletters bursátiles
-        "mercadoen5minutos", "m5m@p.mercadoen5minutos", "ole.com.ar/finanzas",
-        "carryinvest", "puentenet", "puente.com",
+        "cajadevalores", "caja de valores", "eresumen.cajadevalores",
+        "cnv.gob.ar",
+        # newsletters bursátiles / análisis financiero
+        "mercadoen5minutos", "m5m@p.mercadoen5minutos",
+        "m5m@p.inversorglobal", "inversorglobal", "tomaslm.com",
+        "hello@tomaslm", "rudolphtrading", "admin@rudolphtrading",
+        "ole.com.ar/finanzas", "carryinvest", "puentenet", "puente.com",
     ],
     "Impuestos y gobierno": [
         "arca", "afip", "anses", "rentas", "agip", "arba",
@@ -136,15 +139,25 @@ IMPORTANT_SENDERS = {
     ],
     "Trabajo": [
         "postularse", "computrabajo", "zonajobs", "bumeran", "indeed",
-        "jobs-noreply@linkedin", "linkedin.com/jobs",
-        "jobalerts-noreply@linkedin", "talentpitch", "konzerta",
-        "trabajos_ar", "atencionalusuario@zonajobs",
+        "jobs-noreply@linkedin", "linkedin.com/jobs", "jobs-listings",
+        "jobalerts-noreply@linkedin", "messages-noreply@linkedin",
+        "talentpitch", "konzerta", "trabajos_ar",
+        "atencionalusuario@zonajobs", "bebee", "hive.bebee",
     ],
     "Educación": [
         "udemy", "coursera", "platzi", "edx", "domestika",
         "fcecon.unr.edu.ar", "posgrado.rosario@austral.edu",
         "posgrado-econo", "austral.edu.ar", ".edu.ar",
         "uba.ar", "unc.edu.ar", "uns.edu.ar", "ucema.edu.ar",
+    ],
+    "Viajes": [
+        # agencias / aerolíneas / OTAs
+        "turismopasaporte", "despegar.com", "decolar.com", "booking.com",
+        "trivago", "trip.com", "expedia", "edreams", "almundo",
+        "atrapalo", "aviatur", "vrbo", "airbnb",
+        "aerolineas.com.ar", "aerolíneas argentinas", "latam.com",
+        "smiles.com.ar", "amaszonas", "flybondi", "jetsmart",
+        "ezeiza", "aa2000",
     ],
     "Boca": [
         "bocajuniors", "boca juniors", "bocajuniors.com", "cabj",
@@ -248,13 +261,19 @@ CATEGORY_KEYWORDS = {
         "numero de seguimiento", "rechazamos tu pago",
     ],
     "Viajes": [
-        # MUY específicas; sacamos "reserva" suelto, "hotel" suelto, etc.
+        # frases específicas
         "tu vuelo", "tu pasaje", "tu reserva", "tu hotel",
         "booking.com", "despegar.com", "decolar.com", "trip.com",
         "aerolineas argentinas", "aerolíneas argentinas",
         "latam.com", "latam pass", "check-in en línea",
         "check-in en linea", "itinerario de vuelo", "boarding pass",
         "tu próximo viaje", "tu proximo viaje",
+        # destinos típicos de viaje (paquetes/agencias)
+        "costa mujeres", "punta cana", "la romana", "punta del este",
+        "puerto madryn", "bariloche", "cataratas", "cancún", "cancun",
+        "playa del carmen", "all inclusive", "all-inclusive",
+        "paquete turístico", "paquete turistico", "viaje organizado",
+        "salida grupal", "tarifa aérea", "tarifa aerea",
     ],
     "Educación": [
         "udemy", "coursera", "platzi", "edx", "domestika",
