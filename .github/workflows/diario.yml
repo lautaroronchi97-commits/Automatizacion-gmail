@@ -56,8 +56,8 @@ jobs:
             echo "Faltan secrets GMAIL_CREDENTIALS_B64 y/o GMAIL_TOKEN_B64." >&2
             exit 1
           fi
-          echo "$GMAIL_CREDENTIALS_B64" | base64 -d > credentials.json
-          echo "$GMAIL_TOKEN_B64" | base64 -d > token.json
+          echo "$GMAIL_CREDENTIALS_B64" | tr -d '\r\n ' | base64 -d > credentials.json
+          echo "$GMAIL_TOKEN_B64" | tr -d '\r\n ' | base64 -d > token.json
           chmod 600 credentials.json token.json
 
       - name: Correr organizador
