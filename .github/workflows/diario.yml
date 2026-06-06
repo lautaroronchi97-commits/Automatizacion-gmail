@@ -52,12 +52,32 @@ jobs:
           GMAIL_CREDENTIALS_B64: ${{ secrets.GMAIL_CREDENTIALS_B64 }}
           GMAIL_TOKEN_B64: ${{ secrets.GMAIL_TOKEN_B64 }}
         run: |
+          set -e
           if [ -z "$GMAIL_CREDENTIALS_B64" ] || [ -z "$GMAIL_TOKEN_B64" ]; then
             echo "Faltan secrets GMAIL_CREDENTIALS_B64 y/o GMAIL_TOKEN_B64." >&2
             exit 1
           fi
-          echo "$GMAIL_CREDENTIALS_B64" | tr -d '\r\n ' | base64 -d > credentials.json
-          echo "$GMAIL_TOKEN_B64" | tr -d '\r\n ' | base64 -d > token.json
+          write_secret () {
+            name="$1"; val="$2"; out="$3"
+            clean="$(printf '%s' "$val" | tr -d '[:space:]')"
+            first="$(printf '%s' "$clean" | cut -c1)"
+            if [ "$first" = "{" ]; then
+              echo "$name: secret detectado como JSON crudo"
+              printf '%s' "$clean" > "$out"
+            else
+              echo "$name: secret detectado como base64, decodificando"
+              printf '%s' "$clean" | base64 -d > "$out" 2>/dev/null \
+                || { echo "$name: base64 invalido"; exit 1; }
+            fi
+            if head -c1 "$out" | grep -q '{'; then
+              echo "$name: OK ($(wc -c < "$out") bytes)"
+            else
+              echo "$name: ERROR, el resultado no es un JSON valido" >&2
+              exit 1
+            fi
+          }
+          write_secret credentials "$GMAIL_CREDENTIALS_B64" credentials.json
+          write_secret token "$GMAIL_TOKEN_B64" token.json
           chmod 600 credentials.json token.json
 
       - name: Correr organizador
