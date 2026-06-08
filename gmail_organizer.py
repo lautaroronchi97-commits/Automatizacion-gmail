@@ -625,6 +625,67 @@ def explain_message(service, msg_id):
 
 
 # --------------------------------------------------------------------------
+# Snapshot: vuelca un CSV con todos los mails actuales (id, from, subject,
+# labels, fecha). Util para comparar antes/despues de una limpieza manual y
+# aprender que correos el usuario considera descartables.
+# --------------------------------------------------------------------------
+def snapshot(service, out_path, query=None, include_trash=False):
+    import csv
+    q = query or ("in:anywhere -in:spam" if include_trash
+                   else "in:anywhere -in:trash -in:spam")
+    log.info("Snapshot: query=%s", q)
+    ids = list_message_ids(service, q)
+    log.info("Snapshot: %d mensajes a leer", len(ids))
+
+    # Mapear labelId -> nombre para que el snapshot sea legible.
+    labels_list = with_retries(lambda: service.users().labels().list(
+        userId="me").execute()).get("labels", [])
+    id_to_name = {l["id"]: l["name"] for l in labels_list}
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    n_ok, n_err = 0, 0
+    with open(out_path, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        w.writerow(["id", "internal_date", "from_email", "from_name",
+                     "subject", "label_ids", "label_names",
+                     "gmail_categories", "in_inbox", "in_trash"])
+        for i, mid in enumerate(ids, 1):
+            try:
+                msg = with_retries(lambda: service.users().messages().get(
+                    userId="me", id=mid, format="metadata",
+                    metadataHeaders=["From", "Subject"]).execute())
+            except Exception:
+                log.exception("snapshot: error en %s", mid)
+                n_err += 1
+                continue
+            headers = msg.get("payload", {}).get("headers", [])
+            from_name, from_email = parse_from(header(headers, "From"))
+            subject = header(headers, "Subject")
+            lbls = msg.get("labelIds", []) or []
+            label_ids = ";".join(lbls)
+            label_names = ";".join(id_to_name.get(l, l) for l in lbls)
+            cats = ";".join(l for l in lbls if l.startswith("CATEGORY_"))
+            internal = msg.get("internalDate", "0")
+            try:
+                date_iso = dt.datetime.fromtimestamp(
+                    int(internal) / 1000).isoformat(timespec="seconds")
+            except Exception:
+                date_iso = ""
+            w.writerow([
+                mid, date_iso, from_email, from_name,
+                subject[:200], label_ids, label_names, cats,
+                "1" if "INBOX" in lbls else "0",
+                "1" if "TRASH" in lbls else "0",
+            ])
+            n_ok += 1
+            if i % 200 == 0:
+                log.info("snapshot: %d / %d procesados", i, len(ids))
+    log.info("snapshot: %d ok, %d errores -> %s", n_ok, n_err, out_path)
+    print(f"Snapshot OK: {n_ok} mensajes ({n_err} errores) en {out_path}")
+
+
+# --------------------------------------------------------------------------
 # Resumen como draft en Gmail
 # --------------------------------------------------------------------------
 def create_summary_draft(service, report, log_path):
@@ -857,6 +918,11 @@ def parse_args():
                    help="No crear draft de resumen al terminar.")
     p.add_argument("--explain", metavar="MSG_ID",
                    help="Mostrar cómo se clasificaría un mensaje y salir.")
+    p.add_argument("--snapshot", metavar="OUT_CSV",
+                   help="Vuelca un CSV con id/from/subject/labels de cada "
+                        "mail (toda la casilla) y sale.")
+    p.add_argument("--snapshot-include-trash", action="store_true",
+                   help="Junto con --snapshot, incluir tambien Papelera.")
     return p.parse_args()
 
 
@@ -866,6 +932,11 @@ def main():
     if args.explain:
         service = get_service()
         explain_message(service, args.explain)
+        return
+    if args.snapshot:
+        service = get_service()
+        snapshot(service, args.snapshot,
+                  include_trash=args.snapshot_include_trash)
         return
     with SingleInstanceLock(LOCK_FILE):
         run(args)

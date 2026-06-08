@@ -1,0 +1,70 @@
+name: Snapshot de la casilla (CSV de todos los mails)
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: 'Etiqueta del snapshot (ej. "A" o "B" para comparar)'
+        type: string
+        default: 'A'
+      include_trash:
+        description: 'Incluir tambien Papelera (default: solo Recibidos+archivo)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Restaurar credenciales OAuth desde secrets
+        env:
+          GMAIL_CREDENTIALS_B64: ${{ secrets.GMAIL_CREDENTIALS_B64 }}
+          GMAIL_TOKEN_B64: ${{ secrets.GMAIL_TOKEN_B64 }}
+        run: |
+          set -e
+          write_secret () {
+            name="$1"; val="$2"; out="$3"
+            norm="$(printf '%s' "$val" | tr -d '\r')"
+            first="$(printf '%s' "$norm" | tr -d '[:space:]' | cut -c1)"
+            if [ "$first" = "{" ]; then
+              printf '%s' "$norm" > "$out"
+            else
+              printf '%s' "$norm" | tr -d '[:space:]' | base64 -d > "$out"
+            fi
+          }
+          write_secret credentials "$GMAIL_CREDENTIALS_B64" credentials.json
+          write_secret token "$GMAIL_TOKEN_B64" token.json
+          chmod 600 credentials.json token.json
+
+      - name: Tomar snapshot
+        run: |
+          FLAGS=""
+          if [ "${{ github.event.inputs.include_trash }}" = "true" ]; then
+            FLAGS="--snapshot-include-trash"
+          fi
+          python gmail_organizer.py --snapshot snapshot.csv $FLAGS
+          echo "----- preview snapshot.csv -----"
+          head -n 5 snapshot.csv
+          echo "----- total lineas -----"
+          wc -l snapshot.csv
+
+      - name: Subir snapshot como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ github.event.inputs.label }}-${{ github.run_id }}
+          path: snapshot.csv
+          retention-days: 30
