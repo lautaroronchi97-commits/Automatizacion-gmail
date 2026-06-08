@@ -497,8 +497,9 @@ def _finish_important(d, label, text):
         d.action = "keep"
     else:
         d.action = "archive"
+    # Un mail = una sola etiqueta. La señal de "respaldo importante" la da
+    # la estrella (no se agrega "Guardar" como segunda etiqueta).
     if label in config.BACKUP_LABELS and matches_any(text, config.BACKUP_KEYWORDS):
-        d.labels.append("Guardar")
         d.star = True
 
 
@@ -622,6 +623,39 @@ def explain_message(service, msg_id):
     print(f"Action     : {d.action}  star={d.star}  "
           f"review={d.review}  confidence={d.confidence}")
     print(f"Razón      : {d.reason}")
+
+
+# --------------------------------------------------------------------------
+# Cleanup de etiqueta "Guardar": pasamos a 1 etiqueta por mail. Sacamos
+# la etiqueta "Guardar" de los mails que la tengan; la estrella queda
+# como senal de respaldo. Si se le pasa --delete-label, ademas borra la
+# etiqueta de Gmail.
+# --------------------------------------------------------------------------
+def cleanup_label(service, label_name, delete_label=False):
+    labels = with_retries(lambda: service.users().labels().list(
+        userId="me").execute()).get("labels", [])
+    target = next((l for l in labels if l["name"] == label_name), None)
+    if not target:
+        print(f"No existe la etiqueta '{label_name}'. Nada que limpiar.")
+        return
+    lid = target["id"]
+    # Busqueda: todos los mails con esa etiqueta.
+    ids = list_message_ids(service, f'label:"{label_name}"')
+    print(f"{label_name}: {len(ids)} mensajes la tienen aplicada")
+    n = 0
+    # batchModify hasta 1000 por llamada.
+    for i in range(0, len(ids), 1000):
+        chunk = ids[i:i + 1000]
+        with_retries(lambda: service.users().messages().batchModify(
+            userId="me",
+            body={"ids": chunk, "removeLabelIds": [lid]},
+        ).execute())
+        n += len(chunk)
+        print(f"  removidos {n}/{len(ids)}")
+    if delete_label:
+        with_retries(lambda: service.users().labels().delete(
+            userId="me", id=lid).execute())
+        print(f"Etiqueta '{label_name}' eliminada de Gmail.")
 
 
 # --------------------------------------------------------------------------
@@ -923,6 +957,13 @@ def parse_args():
                         "mail (toda la casilla) y sale.")
     p.add_argument("--snapshot-include-trash", action="store_true",
                    help="Junto con --snapshot, incluir tambien Papelera.")
+    p.add_argument("--cleanup-label", metavar="NAME",
+                   help="Saca la etiqueta NAME de todos los mails que la "
+                        "tengan (no toca star). Util para migrar a 1 "
+                        "etiqueta por mail.")
+    p.add_argument("--delete-label", action="store_true",
+                   help="Junto con --cleanup-label, elimina la etiqueta de "
+                        "Gmail despues de removerla de los mails.")
     return p.parse_args()
 
 
@@ -937,6 +978,11 @@ def main():
         service = get_service()
         snapshot(service, args.snapshot,
                   include_trash=args.snapshot_include_trash)
+        return
+    if args.cleanup_label:
+        service = get_service()
+        cleanup_label(service, args.cleanup_label,
+                       delete_label=args.delete_label)
         return
     with SingleInstanceLock(LOCK_FILE):
         run(args)

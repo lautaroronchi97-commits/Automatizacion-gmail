@@ -36,7 +36,6 @@ LABELS = [
     "Yo enviados",
     "Boca",
     "Cocos",
-    "Guardar",
     "Revisar",  # auxiliar: correos dudosos que dejo para revisión manual
 ]
 
