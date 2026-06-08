@@ -43,10 +43,10 @@ jobs:
           path: |
             senders.json
             state.json
-          # v2 = reset de memoria de remitentes despues del rediseno de reglas.
-          key: organizer-state-v2-${{ github.run_id }}
+          # v3 = reset de memoria tras agregar auto-trash y expiracion por edad.
+          key: organizer-state-v3-${{ github.run_id }}
           restore-keys: |
-            organizer-state-v2-
+            organizer-state-v3-
 
       - name: Restaurar credenciales OAuth desde secrets
         env:

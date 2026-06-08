@@ -355,7 +355,110 @@ WHITELIST = [
 ]
 
 # --------------------------------------------------------------------------
+# Remitentes que SIEMPRE van a Papelera apenas llegan. Aprendido del diff
+# entre snapshots A (antes de la limpieza manual) y B (despues): remitentes
+# automaticos/masivos con CERO sobrevivientes. NO se incluyen personas reales
+# ni casos sensibles (turnos medicos, agencia de viajes, socios de Boca,
+# justicia, escuelas): esos se rigen por la expiracion por edad de abajo.
+# La lista blanca (WHITELIST / persona real) siempre gana sobre esto.
+# --------------------------------------------------------------------------
+AUTO_TRASH_SENDERS = [
+    # MercadoLibre (notificaciones / ofertas / mercadoshops)
+    "no-responder@mercadolibre.com", "no-responder@mercadolibre.com.ar",
+    "no-responder@no-responder.mercadolibre.com",
+    "noreply@no-responder.mercadolibre.com",
+    "no-reply@mercadolibre.com", "no-reply@mercadolibre.com.ar",
+    "noreply@mercadolibre.com",
+    "ofertas@r.mercadolibre.com.ar", "ofertas@a.mercadolibre.com.ar",
+    "comunicaciones@r.mercadolibre.com.ar",
+    "comunicaciones@a.mercadolibre.com.ar",
+    "comunicaciones@mercadolibre.com.ar",
+    "autos@r.mercadolibre.com.ar", "info@r.mercadolibre.com.ar",
+    "info@e.mercadolibre.com.ar", "no-responder@mercadoshops.com",
+    # Mercado Pago (marketing, no comprobantes)
+    "novedades@a.mercadopago.com", "comercial@r.mercadopago.com.ar",
+    "promocion@a.mercadopago.com", "novedades@r.mercadopago.com",
+    "no-responder@mercadopago.com",
+    # Empleo
+    "no-reply@postularse.com", "jobs-noreply@linkedin.com",
+    "jobs-listings@linkedin.com", "jobalerts-noreply@linkedin.com",
+    "newsletters-noreply@linkedin.com", "invitations@linkedin.com",
+    "trabajos_ar@computrabajo.com", "alertas@computrabajo.com",
+    "alertas_ar@computrabajo.com", "destacados@computrabajo.com",
+    # Bancos / tarjetas (marketing y avisos masivos, NO resumenes)
+    "mensajesyavisos@mails.santander.com.ar",
+    "newsletter@clientesmacro.com.ar",
+    "producto@productos.bancomacro.com.ar",
+    "noreply@avisos.redlink.com.ar",
+    "eresumen@bancomunicipal.com.ar",
+    "newsletter@mails.bancomunicipal.com.ar",
+    "novedades@comunicaciones.bbva.com.ar",
+    "nx-documentacion@naranjax.com",
+    # Cocos (marketing / operaciones masivas)
+    "cocospro@cocos.capital", "atencion@cocos.capital",
+    "no-reply@cocos.capital", "noreply@mailing.cocos.capital",
+    # Inversiones / newsletters bursatiles
+    "sales@bullmarketbrokers.com", "m5m@p.inversorglobal.com",
+    "m5m@p.mercadoen5minutos.com", "hello@tomaslm.com", "info@rava.com",
+    "nor@matbarofex.com.ar",
+    # Retail / ecommerce / marketing
+    "hola+compras@tiendanube.com", "newslettergr@em-grimoldi.com.ar",
+    "newsletterhushpuppies@em-grimoldi.com.ar",
+    "newsletter@em.cheeky.com.ar", "newsletter@email.hm.com",
+    "clientes@digitalsport.com.ar", "service-ar@puma.com",
+    "facturasemsa@e-musimundo.com", "ventas@hardcorecomputacion.com.ar",
+    "ventas@felipesalvadorweb.com", "info@felipesalvadorweb.com",
+    "noreply@vtexcommerce.com.br", "adidas@ar-info.adidas.com",
+    "hola@lapanaleraencasa.com",
+    # Servicios / facturacion automatica
+    "factura-digital@factura.personal.com.ar",
+    "aviso_factura@iplan.com.ar", "no-reply@ov.litoral-gas.com.ar",
+    "jira@litoral-gas.atlassian.net", "cupondepago@serviciosiro.com.ar",
+    "no-reply@viumi.com.ar", "papeleriadigital@mail.sancristobal.com.ar",
+    "oficinavirtual@epe.santafe.gov.ar",
+    # Inmobiliarias (avisos masivos, no conversaciones)
+    "no_reply@zonaprop.com.ar", "info@hasanestudioinmobiliario.com",
+    # Apps / otros
+    "noreply@discord.com", "disneyplus@trx.mail2.disneyplus.com",
+    "disneyplus@mail.disneyplus.com", "contacto@digitalhouse.com",
+]
+
+# Dominios completos que SIEMPRE van a Papelera (cualquier localpart).
+# Util para remitentes con UUID en el localpart (ej. ML transaccional).
+AUTO_TRASH_DOMAINS = [
+    "mail.mercadolibre.com",
+]
+
+# --------------------------------------------------------------------------
+# Expiracion por etiqueta: mails MAS VIEJOS que N dias -> Papelera (siempre
+# recuperable 30 dias en Papelera). Replica tu limpieza por antiguedad: lo
+# viejo se descarta, lo reciente y util se conserva. Etiqueta no listada o
+# valor 0 = NUNCA expira. Personal y Revisar nunca expiran a proposito.
+# --------------------------------------------------------------------------
+LABEL_EXPIRY_DAYS = {
+    "Impuestos y gobierno": 730,
+    "Finanzas": 365,
+    "Inversiones": 365,
+    "Servicios y facturas": 180,
+    "Salud": 180,
+    "Yo enviados": 180,
+    "Educación": 90,
+    "Cocos": 90,
+    "Compras": 60,
+    "Inmuebles": 60,
+    "Boca": 30,
+    "Viajes": 30,
+    "Trabajo": 30,
+    "Suscripciones": 30,
+    "Promos que sirven": 30,
+    # "Personal": nunca
+    # "Revisar": nunca
+}
+
+# --------------------------------------------------------------------------
 # Vencimiento de promos conservadas: a los N días -> Papelera.
+# (Mantengo la constante por compatibilidad; ahora "Promos que sirven"
+#  tambien esta en LABEL_EXPIRY_DAYS.)
 # --------------------------------------------------------------------------
 PROMO_EXPIRY_DAYS = 30
 

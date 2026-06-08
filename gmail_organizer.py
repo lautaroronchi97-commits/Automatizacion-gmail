@@ -345,6 +345,23 @@ def is_own_email(email):
                 getattr(config, "OWN_EMAILS", []) if e.strip())
 
 
+def is_auto_trash(email):
+    """True si el remitente esta en la lista de 'siempre Papelera' (aprendida
+    del diff de snapshots). Match exacto por email o por dominio completo."""
+    if "@" in email:
+        domain = email.split("@", 1)[1]
+    else:
+        domain = ""
+    for s in getattr(config, "AUTO_TRASH_SENDERS", []):
+        if email == s.strip().lower():
+            return True
+    for d in getattr(config, "AUTO_TRASH_DOMAINS", []):
+        d = d.strip().lower()
+        if d and (domain == d or domain.endswith("." + d)):
+            return True
+    return False
+
+
 def is_whitelisted(email):
     return any(w.strip().lower() in email for w in config.WHITELIST if w.strip())
 
@@ -379,6 +396,24 @@ def classify(name, email, subject, body, gmail_categories, headers):
         d.confidence = "high"
         return d
 
+    # 0.5) Lista blanca explícita gana sobre TODO (ni siquiera auto-trash
+    #      la toca). Para personas/contactos que querés intocables.
+    if is_whitelisted(email):
+        d.labels = ["Personal"]
+        d.action = "keep"
+        d.reason = "whitelist explícita: se deja en Recibidos"
+        d.confidence = "high"
+        return d
+
+    # 0.6) Remitente automático aprendido como 'siempre Papelera' (del diff
+    #      de snapshots A->B). Va antes que IMPORTANT_SENDERS para que p.ej.
+    #      cocospro@cocos.capital se descarte aunque "cocos" sea importante.
+    if is_auto_trash(email):
+        d.action = "trash"
+        d.reason = "remitente aprendido como descartable (auto-trash)"
+        d.confidence = "high"
+        return d
+
     # 1) Remitente importante por categoría (corre antes que 'persona' para no
     #    perder bancos/gobierno/Boca/Cocos/MercadoLibre/etc.).
     for label, needles in config.IMPORTANT_SENDERS.items():
@@ -388,14 +423,6 @@ def classify(name, email, subject, body, gmail_categories, headers):
             d.confidence = "high"
             _finish_important(d, label, text)
             return d
-
-    # 2) Lista blanca explícita -> intocable.
-    if is_whitelisted(email):
-        d.labels = ["Personal"]
-        d.action = "keep"
-        d.reason = "whitelist explícita: se deja en Recibidos"
-        d.confidence = "high"
-        return d
 
     # 2b) No parece automático -> persona, intocable.
     if not is_automated(email, name, headers):
@@ -475,8 +502,8 @@ def classify_from_memory(senders, name, email, subject, body):
     if not label or label not in config.LABELS:
         return None
     # Si las reglas actuales asignan otra etiqueta, ignorar la memoria.
-    if is_own_email(email):
-        return None  # caso "Yo enviados" lo resuelve classify().
+    if is_own_email(email) or is_auto_trash(email):
+        return None  # casos "Yo enviados" / auto-trash los resuelve classify().
     for cfg_label, needles in config.IMPORTANT_SENDERS.items():
         if (matches_any(email, needles) or matches_any(name, needles)) \
                 and cfg_label != label:
@@ -544,15 +571,29 @@ def batch_trash(service, msg_ids):
 
 
 # --------------------------------------------------------------------------
-# Limpieza de promos vencidas
+# Expiración por edad: cada etiqueta con un máximo de antigüedad. Los mails
+# más viejos que ese umbral van a Papelera (recuperable 30 días). Replica la
+# limpieza por antiguedad del usuario.
 # --------------------------------------------------------------------------
-def expire_promos(service, dry_run, report, label_only):
-    q = (f'label:"Promos que sirven" older_than:{config.PROMO_EXPIRY_DAYS}d '
-         f'-in:trash -in:spam')
-    ids = list_message_ids(service, q)
-    if not dry_run and not label_only:
-        batch_trash(service, ids)
-    report["promos_vencidas_a_papelera"] = len(ids)
+def expire_by_label(service, dry_run, report, label_only):
+    expired = {}
+    total = 0
+    for label, days in config.LABEL_EXPIRY_DAYS.items():
+        if not days or days <= 0:
+            continue
+        q = f'label:"{label}" older_than:{days}d -in:trash -in:spam'
+        ids = list_message_ids(service, q)
+        if not ids:
+            continue
+        if not dry_run and not label_only:
+            batch_trash(service, ids)
+        expired[label] = {"dias": days, "a_papelera": len(ids)}
+        total += len(ids)
+    report["expirados_por_etiqueta"] = expired
+    report["expirados_total"] = total
+    # Compat: "Promos que sirven" sigue reportandose aparte si existe.
+    report["promos_vencidas_a_papelera"] = (
+        expired.get("Promos que sirven", {}).get("a_papelera", 0))
 
 
 # --------------------------------------------------------------------------
@@ -877,7 +918,7 @@ def run(args):
             log.exception("Error aplicando acción a %s", mid)
             report["errores"] += 1
 
-    expire_promos(service, dry_run, report, args.label_only)
+    expire_by_label(service, dry_run, report, args.label_only)
     save_senders(senders, dry_run)
     state["last_run_at"] = dt.datetime.now().isoformat()
     save_state(state, dry_run)
@@ -904,8 +945,13 @@ def print_report(r, log_path):
     print(f"Correos procesados : {r['total']}")
     print(f"Archivados         : {r['archivados']}")
     print(f"Enviados a Papelera: {r['a_papelera']}")
-    print(f"Promos vencidas    : {r.get('promos_vencidas_a_papelera', 0)} a Papelera")
+    print(f"Expirados por edad : {r.get('expirados_total', 0)} a Papelera")
     print(f"Errores            : {r.get('errores', 0)}")
+    exp = r.get("expirados_por_etiqueta") or {}
+    if exp:
+        print("\nExpirados por etiqueta (más viejos que N días):")
+        for k, v in sorted(exp.items()):
+            print(f"  - {k}: {v['a_papelera']} (> {v['dias']}d)")
     print("\nPor etiqueta:")
     for k, v in sorted(r["por_etiqueta"].items()):
         print(f"  - {k}: {v}")
