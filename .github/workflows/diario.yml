@@ -87,12 +87,9 @@ jobs:
           # Corrida diaria: por defecto procesa solo lo nuevo desde la ultima vez.
           FLAGS="--execute --since-last-run"
 
-          # --- PERIODO DE PRUEBA: la corrida programada (22:00) solo etiqueta. ---
-          # Para activar el modo completo (archivar + Papelera), borra la
-          # linea marcada con QUITAR-PARA-MODO-COMPLETO.
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            FLAGS="$FLAGS --label-only"   # QUITAR-PARA-MODO-COMPLETO
-          fi
+          # MODO COMPLETO ACTIVO: la corrida programada archiva y manda a
+          # Papelera (recuperable 30 dias). Si queres volver a modo prueba
+          # temporalmente, agregale "--label-only" con el boton Run workflow.
 
           # Overrides manuales desde el boton "Run workflow":
           if [ "${{ github.event.inputs.full }}" = "true" ]; then
