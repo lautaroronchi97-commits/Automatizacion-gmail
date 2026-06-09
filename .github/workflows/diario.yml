@@ -2,8 +2,9 @@ name: Organizar Gmail diario
 
 on:
   schedule:
-    # 01:00 UTC = 22:00 ARG (UTC-3). GitHub puede retrasarlo unos minutos.
-    - cron: '0 1 * * *'
+    # 01:07 UTC = 22:07 ARG (UTC-3). Evitamos el top-of-hour para reducir
+    # demoras del scheduler de GitHub Actions (que llega a 30+ min al "00").
+    - cron: '7 1 * * *'
   workflow_dispatch:
     inputs:
       label_only:
