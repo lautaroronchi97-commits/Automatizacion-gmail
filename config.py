@@ -99,6 +99,7 @@ IMPORTANT_SENDERS = {
         "factura.personal.com.ar", "factura-digital@factura.personal",
         # expensas
         "expensaspagas", "consorcioabierto", "octopuspro", "expensaonline",
+        "quadra", "quadrasoft", "expensasquadra",
         # seguros
         "sancristobal", "sancorseguros", "lacaja", "rivadaviaseguros",
         "alianza.com.ar", "mercantilandina", "providencia",
