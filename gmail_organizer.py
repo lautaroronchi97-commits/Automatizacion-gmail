@@ -405,25 +405,26 @@ def classify(name, email, subject, body, gmail_categories, headers):
         d.confidence = "high"
         return d
 
-    # 0.6) Remitente automático aprendido como 'siempre Papelera' (del diff
-    #      de snapshots A->B). Va antes que IMPORTANT_SENDERS para que p.ej.
-    #      cocospro@cocos.capital se descarte aunque "cocos" sea importante.
-    if is_auto_trash(email):
-        d.action = "trash"
-        d.reason = "remitente aprendido como descartable (auto-trash)"
+    # 0.6) Promo conservable: banco/súper/combustible por remitente, O un
+    #      local/comercio que MENCIONA un banco a conservar (ej. "20% pagando
+    #      con Macro"). Va ANTES que auto-trash para que una promo de Adidas/
+    #      H&M que ofrece descuento con tu banco NO se borre. Solo aplica si
+    #      Gmail la marca como Promoción.
+    if "CATEGORY_PROMOTIONS" in gmail_categories and (
+            matches_any(email, config.PROMO_KEEP_SENDERS)
+            or matches_any(name, config.PROMO_KEEP_SENDERS)
+            or matches_any(text, getattr(config, "PROMO_KEEP_KEYWORDS", []))):
+        d.labels = ["Promos que sirven"]
+        d.action = "archive"
+        d.reason = "promo útil (banco/súper/combustible o menciona banco)"
         d.confidence = "high"
         return d
 
-    # 0.7) Promo conservable de banco/súper/combustible. Va ANTES que
-    #      IMPORTANT_SENDERS para que una promo de Santander/Macro caiga en
-    #      "Promos que sirven" (y no en Finanzas). Solo si Gmail la marca como
-    #      Promociones; el resto del correo del banco sigue yendo a Finanzas.
-    if "CATEGORY_PROMOTIONS" in gmail_categories and (
-            matches_any(email, config.PROMO_KEEP_SENDERS)
-            or matches_any(name, config.PROMO_KEEP_SENDERS)):
-        d.labels = ["Promos que sirven"]
-        d.action = "archive"
-        d.reason = "promo útil (banco/súper/combustible)"
+    # 0.7) Remitente automático aprendido como 'siempre Papelera' (del diff
+    #      de snapshots A->B). Va antes que IMPORTANT_SENDERS.
+    if is_auto_trash(email):
+        d.action = "trash"
+        d.reason = "remitente aprendido como descartable (auto-trash)"
         d.confidence = "high"
         return d
 

@@ -195,6 +195,17 @@ PROMO_KEEP_SENDERS = [
     "ypf", "shell", "axion", "puma", "gulf",
 ]
 
+# Palabras clave en el ASUNTO/CUERPO que hacen conservar una promo aunque la
+# mande un local/comercio (ej. "20% pagando con Macro"). Si una promo
+# (CATEGORY_PROMOTIONS) menciona alguno de estos bancos, va a "Promos que
+# sirven" en vez de Papelera.
+PROMO_KEEP_KEYWORDS = [
+    "santander", "banco macro", "tarjeta macro", "con macro", "macro click",
+    "banco nación", "banco nacion", "bna", "modo",
+    "banco municipal", "municipal de rosario", "tarjeta municipal",
+    "naranja x", "naranjax", "visa banco", "mastercard banco",
+]
+
 # --------------------------------------------------------------------------
 # Palabras clave que marcan un correo como IMPORTANTE (asunto o cuerpo).
 # Acotadas para evitar matches falsos.
