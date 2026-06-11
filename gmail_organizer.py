@@ -414,6 +414,19 @@ def classify(name, email, subject, body, gmail_categories, headers):
         d.confidence = "high"
         return d
 
+    # 0.7) Promo conservable de banco/súper/combustible. Va ANTES que
+    #      IMPORTANT_SENDERS para que una promo de Santander/Macro caiga en
+    #      "Promos que sirven" (y no en Finanzas). Solo si Gmail la marca como
+    #      Promociones; el resto del correo del banco sigue yendo a Finanzas.
+    if "CATEGORY_PROMOTIONS" in gmail_categories and (
+            matches_any(email, config.PROMO_KEEP_SENDERS)
+            or matches_any(name, config.PROMO_KEEP_SENDERS)):
+        d.labels = ["Promos que sirven"]
+        d.action = "archive"
+        d.reason = "promo útil (banco/súper/combustible)"
+        d.confidence = "high"
+        return d
+
     # 1) Remitente importante por categoría (corre antes que 'persona' para no
     #    perder bancos/gobierno/Boca/Cocos/MercadoLibre/etc.).
     for label, needles in config.IMPORTANT_SENDERS.items():

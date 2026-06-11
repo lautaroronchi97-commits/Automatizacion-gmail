@@ -386,22 +386,15 @@ AUTO_TRASH_SENDERS = [
     "newsletters-noreply@linkedin.com", "invitations@linkedin.com",
     "trabajos_ar@computrabajo.com", "alertas@computrabajo.com",
     "alertas_ar@computrabajo.com", "destacados@computrabajo.com",
-    # Bancos / tarjetas (marketing y avisos masivos, NO resumenes)
-    "mensajesyavisos@mails.santander.com.ar",
-    "newsletter@clientesmacro.com.ar",
-    "producto@productos.bancomacro.com.ar",
-    "noreply@avisos.redlink.com.ar",
-    "eresumen@bancomunicipal.com.ar",
-    "newsletter@mails.bancomunicipal.com.ar",
-    "novedades@comunicaciones.bbva.com.ar",
-    "nx-documentacion@naranjax.com",
-    # Cocos (marketing / operaciones masivas)
-    "cocospro@cocos.capital", "atencion@cocos.capital",
-    "no-reply@cocos.capital", "noreply@mailing.cocos.capital",
-    # Inversiones / newsletters bursatiles
-    "sales@bullmarketbrokers.com", "m5m@p.inversorglobal.com",
-    "m5m@p.mercadoen5minutos.com", "hello@tomaslm.com", "info@rava.com",
-    "nor@matbarofex.com.ar",
+    # NOTA: NO ponemos bancos/tarjetas ni Cocos en auto-trash. Aunque
+    # historicamente borraste sus newsletters, tus reglas dicen que las
+    # PROMOS de Santander/Macro/BNA se conservan ("Promos que sirven") y
+    # Cocos tiene su propia etiqueta. Esos remitentes se clasifican por
+    # IMPORTANT_SENDERS / Promos, no se descartan. (Si una promo puntual
+    # no te sirve, la borras a mano.)
+    # Newsletters bursatiles puros (NO brokers con cuenta tuya).
+    "m5m@p.inversorglobal.com", "m5m@p.mercadoen5minutos.com",
+    "hello@tomaslm.com",
     # Retail / ecommerce / marketing
     "hola+compras@tiendanube.com", "newslettergr@em-grimoldi.com.ar",
     "newsletterhushpuppies@em-grimoldi.com.ar",
