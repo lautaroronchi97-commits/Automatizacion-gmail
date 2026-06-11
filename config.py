@@ -403,6 +403,10 @@ AUTO_TRASH_SENDERS = [
     # Cocos tiene su propia etiqueta. Esos remitentes se clasifican por
     # IMPORTANT_SENDERS / Promos, no se descartan. (Si una promo puntual
     # no te sirve, la borras a mano.)
+    # Nota: NO ponemos `nx-documentacion@naranjax.com` aqui. Aunque historicamente
+    # los borrabas, ahora usas Naranja X y esos correos suelen ser legales/
+    # documentales (cambios de terminos, etc.). Si llegan promos van por
+    # PROMO_KEEP_SENDERS; los resumenes van a Finanzas.
     # Newsletters bursatiles puros (NO brokers con cuenta tuya).
     "m5m@p.inversorglobal.com", "m5m@p.mercadoen5minutos.com",
     "hello@tomaslm.com",
