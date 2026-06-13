@@ -227,6 +227,25 @@ ACTION_KEYWORDS = [
     "confirmar tu", "acción requerida", "accion requerida",
     "último aviso", "ultimo aviso", "corte de servicio",
     "tu turno", "confirmá tu",
+    # Pagos rechazados / problemas
+    "rechazamos tu pago", "pago rechazado", "tu pago fue rechazado",
+]
+
+# Palabras clave TRANSACCIONALES en el ASUNTO. Si una de éstas aparece, el
+# correo se clasifica como "Compras" ANTES de aplicar auto-trash. Sirve para
+# proteger facturas/pedidos/envíos/pagos LEGÍTIMOS de retailers que en
+# general mandan también mucho marketing (MercadoLibre, Digital Sport, etc.).
+# Las palabras deben ser muy específicas para no falsear con promos.
+TRANSACTIONAL_KEYWORDS = [
+    "compraste",
+    "pedido realizado", "pedido confirmado", "pedido enviado",
+    "pedido recibido", "pedido aprobado",
+    "la factura de", "factura de tu compra", "factura de la compra",
+    "comprobante de compra", "comprobante de tu compra",
+    "comprobante de pago",
+    "envío en camino", "envio en camino",
+    "tu pago fue", "rechazamos tu pago", "pago rechazado",
+    "pago aprobado", "pago confirmado",
 ]
 
 # Palabras clave por categoría temática (asunto/cuerpo). MUY específicas para

@@ -405,7 +405,19 @@ def classify(name, email, subject, body, gmail_categories, headers):
         d.confidence = "high"
         return d
 
-    # 0.6) Promo conservable: banco/súper/combustible por remitente, O un
+    # 0.6) Transaccional: el ASUNTO revela una operacion concreta (factura,
+    #      pedido, envio, pago aprobado/rechazado). Va ANTES de auto-trash
+    #      para que una factura/pedido legitimo de un retailer (MercadoLibre,
+    #      Digital Sport, etc.) NO se descarte aunque el remitente este en
+    #      la lista de marketing.
+    if matches_any(subject, getattr(config, "TRANSACTIONAL_KEYWORDS", [])):
+        d.labels = ["Compras"]
+        d.reason = "transaccional retail (factura/pedido/envio/pago)"
+        d.confidence = "high"
+        _finish_important(d, "Compras", text)
+        return d
+
+    # 0.7) Promo conservable: banco/súper/combustible por remitente, O un
     #      local/comercio que MENCIONA un banco a conservar (ej. "20% pagando
     #      con Macro"). Va ANTES que auto-trash para que una promo de Adidas/
     #      H&M que ofrece descuento con tu banco NO se borre. Solo aplica si
@@ -420,7 +432,7 @@ def classify(name, email, subject, body, gmail_categories, headers):
         d.confidence = "high"
         return d
 
-    # 0.7) Remitente automático aprendido como 'siempre Papelera' (del diff
+    # 0.8) Remitente automático aprendido como 'siempre Papelera' (del diff
     #      de snapshots A->B). Va antes que IMPORTANT_SENDERS.
     if is_auto_trash(email):
         d.action = "trash"
